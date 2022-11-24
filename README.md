@@ -63,7 +63,7 @@ setpri(up)
 
 * Unix V6 Manuals
 
-   [http://man.cat-v.org/unix-6th/](http://man.cat-v.org/unix-6th/)
+  [http://man.cat-v.org/unix-6th/](http://man.cat-v.org/unix-6th/)
 
   可在此阅览UNIX V6的手册
 
