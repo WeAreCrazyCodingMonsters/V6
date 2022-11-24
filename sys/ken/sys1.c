@@ -398,7 +398,13 @@ loop://遍历​proc[]​寻找子进程。
 fork()
 {
 	register struct proc *p1, *p2;
+    // p1指向父进程的proc结构体
 	p1 = u.u_procp;
+    /*
+    * 利用p2遍历proc[]，找到一个没有用过的proc结构体
+    * 找到：跳转入found，开启新结构体
+    * 没找到：没有可用的proc元素，跳转如out
+    */
 	for(p2 = &proc[0]; p2 < &proc[NPROC]; p2++)
 		if(p2->p_stat == NULL)
 			// find an not using proc
@@ -407,6 +413,7 @@ fork()
 	goto out;
 
 found:
+    // 如果正常运行的话newproc()返回0,故不会进入条件语句中。
 	if(newproc()) {
 		/*
 		* 将用户进程的r0设定为父进程的proc.p_pid
@@ -435,8 +442,10 @@ out:
 	* 程序计数器指向下一条程序
 	*/
 	u.u_ar0[R7] =+ 2;
+    /*
+    * 此时下一行程序将执行fork.s中的"bec 2f"
+    */
 }
-
 /*
  * break system call.
  *  -- bad planning: "break" is a dirty word in C.

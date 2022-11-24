@@ -416,6 +416,7 @@ loop:
  * The subtle implication of the returned value of swtch
  * (see above) is that this is the value that newproc's
  * caller in the new process sees.
+ * 创建一个新的进程，如果是一个新进程则返回1
  */
 newproc()
 {
@@ -444,53 +445,70 @@ retry:
 	for(rpp = &proc[0]; rpp < &proc[NPROC]; rpp++) {
 		if(rpp->p_stat == NULL && p==NULL)
 			p = rpp;
+        // 若发现proc[]中存在与为子进程生成的id重合的id，则重新执行retry
 		if (rpp->p_pid==mpid)
 			goto retry;
 	}
+    // 使rpp指向空余的proc结构体，若没有找到则执行panic("no procs")
 	if ((rpp = p)==NULL)
 		panic("no procs");
-
+	// 此时已经找到了空余的proc结构体
 	/*
 	 * make proc entry for new proc
 	 */
-
+	// 　开始对子进程进行初始设定。从u.u_procp取得proc[]中代表执行进程（父进程）的元素
 	rip = u.u_procp;
 	up = rip;
+    // 此处对rpp进行下述设定
+    // 可执行状态（将proc.p_stat设定为SRUN
 	rpp->p_stat = SRUN;
-	rpp->p_flag = SLOAD;
+    // 位于内存中（设置SLOAD标志位）
+	rpp->p_flag = SLOAD; 
 	rpp->p_uid = rip->p_uid;
 	rpp->p_ttyp = rip->p_ttyp;
 	rpp->p_nice = rip->p_nice;
 	rpp->p_textp = rip->p_textp;
+    //  将子进程的proc结构体中存储id的成员p_pid设置为子进程的id
 	rpp->p_pid = mpid;
 	rpp->p_ppid = rip->p_pid;
+   // 执行时间为0
 	rpp->p_time = 0;
 
 	/*
 	 * make duplicate entries
 	 * where needed
 	 */
-
+	// 　由于子进程继承了由父进程打开的文件，因此这些文件的参照计数器都加 1。
 	for(rip = &u.u_ofile[0]; rip < &u.u_ofile[NOFILE];)
 		if((rpp = *rip++) != NULL)
 			rpp->f_count++;
+    // 因为子进程与父进程指向text[]中相同的元素，所以此元素的参照计数器加上1。
 	if((rpp=up->p_textp) != NULL) {
 		rpp->x_count++;
 		rpp->x_ccount++;
 	}
+    // 由于子进程继承了当前目录的数据，因此inode[]中对应此目录的元素的参照计数器加上1。
 	u.u_cdir->i_count++;
 	/*
 	 * Partially simulate the environment
 	 * of the new process so that when it is actually
 	 * created (by copying) it will look right.
 	 */
+    // 调用savu()，将 r5、r6的当前值暂存至user.u_rsav
 	savu(u.u_rsav);
 	rpp = p;
+    // 暂时将父进程的 user.u_procp指向proc[]中代表子进程的元素。
+    // 此时复制出来的父进程数据段，其user.u_procp将指向proc[]中代表子进程的元素
 	u.u_procp = rpp;
+    // up是指向父进程proc结构体的指针
 	rip = up;
+    // 此时rip指向父进程，n被赋为父进程数据段的长度
 	n = rip->p_size;
+    // a1记录父进程数据段的起始地址
 	a1 = rip->p_addr;
+    // 将子进程的p_size设置为父进程数据段的长度。
 	rpp->p_size = n;
+    // 使用malloc开辟一个与父进程数据段长度相同的空间，起始地址为a2 
 	a2 = malloc(coremap, n);
 	/*
 	 * If there is not enough core for the
@@ -498,20 +516,39 @@ retry:
 	 * copy.
 	 */
 	if(a2 == NULL) {
+        // 开辟失败 
+        /* 如果内存没有足够的空间，父进程的数据段会被复制到交换空间（作为子进程的数据段），待数据从交换空间换入内存时再对其分配内存
+ 		*/
 		rip->p_stat = SIDL;
+        /* 将父进程的状态设置为SIDL。
+        * 处于SIDL状态的进程不会被选中成为执行进程，也不会被换出至交换空间。
+        * 执行第 62行的xswap()时，复制父进程的数据段到交换空间的处理被启动。
+        * 在此处理过程中，父进程将暂时进入休眠状态。
+        * 将其设置成SIDL状态是为了防止在复制处理中父进程成为执行进程，
+        * 或其内存数据被换出导致数据发生变化。
+		*/
+        // 将子进程的数据段地址设为与父进程的数据段地址相同。
 		rpp->p_addr = a1;
+        // 执行savu(u.u_ssav)，将 r5、r6的当前值暂存至u.u_ssav。
+        // 因为数据段包含user结构体，所以u.u_ssav也将被复制到子进程。
 		savu(u.u_ssav);
+        // 执行xswap()将数据从内存换到交换区。
+        // 由于将rpp的p_addr设置为父进程的数据段地址，因此父进程的数据段成为处理对象
 		xswap(rpp, 0, 0);
 		rpp->p_flag =| SSWAP;
+        // 复制结束，父进程进入SRUN状态
 		rip->p_stat = SRUN;
 	} else {
+    // 开辟成功
 	/*
 	 * There is core, so just copy.
 	 */
+    // 复制数据段
 		rpp->p_addr = a2;
 		while(n--)
 			copyseg(a1++, a2++);
 	}
+   	// 将父进程的user.u_procp恢复原状后返回 0。
 	u.u_procp = rip;
 	return(0);
 }
