@@ -110,6 +110,12 @@ putchar(c)
  * It syncs, prints "panic: mesg" and
  * then loops.
  */
+
+/* 
+ * panic()​通过对​idle()​进行循环调用以阻止程序继续执行。
+ * 此函数将在由于资源匮乏等原因导致内核处理无法继续进行的情况下被执行。
+ * idle()​内部将处理器优先级设置为0A，然后执行汇编指令​wait​进入等待中断的状态
+*/
 panic(s)
 char *s;
 {

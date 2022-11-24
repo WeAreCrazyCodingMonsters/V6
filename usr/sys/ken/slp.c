@@ -26,9 +26,19 @@ sleep(chan, pri)
 {
 	register *rp, s;
 
+	// 保存 PSW的当前值，为进程的下次执行做准备。​PS​指向 PSW所映射的地址
 	s = PS->integ;
+	// 将​rp​设置为​proc[]​中代表执行进程的元素。
 	rp = u.u_procp;
 	if(pri >= 0) {
+		/*
+		 *如果执行优先级大于等于 0，在入睡和被唤醒时对信号进行处理。首先使用issig()​判断是否收到信号，如果收到了信号则跳转到​psig​对其进行处理。
+		 * 设定执行进程的​proc.p_wchan​、​proc.p_stat​和​proc.p_pri​。
+		 * 由于在发生中断时被调用的​wakeup()​中也有可能修改这些数据，此处将处理器优先级提升到 6以防止中断的发生。
+		 * 关于处理器优先级和中断请参见第 5章的说明。设定结束后再将处理器优先级重置为0。
+		 * 如果标识变量​runin​为 1（表示不存在需要被换出至交换空间的对象），则启动进程调度器。
+		 * 关于标识变量​runin​和进程调度器请参见第 4章的说明。最后调用​swtch()​切换执行进程。
+		*/
 		if(issig())
 			goto psig;
 		spl6();
@@ -44,6 +54,9 @@ sleep(chan, pri)
 		if(issig())
 			goto psig;
 	} else {
+		/*
+		 *此处为执行优先级小于 0时的处理。
+		*/
 		spl6();
 		rp->p_wchan = chan;
 		rp->p_stat = SSLEEP;
@@ -51,6 +64,7 @@ sleep(chan, pri)
 		spl0();
 		swtch();
 	}
+	// 为了再次执行被中断的进程，恢复被保存的 PSW。
 	PS->integ = s;
 	return;
 
@@ -113,11 +127,19 @@ setpri(up)
 {
 	register *pp, p;
 
+	/*
+	*计算执行优先级
+	*/
 	pp = up;
 	p = (pp->p_cpu & 0377)/16;
 	p =+ PUSER + pp->p_nice;
 	if(p > 127)
 		p = 127;
+	/*
+	* ​curpri​为当前执行中的进程的执行优先级。
+	* 标志变量​runrun​表示存在执行优先级大于当前进程的其他进程。
+	* 因为proc.p_pri的值越小执行优先级越高，所以此处的不等号实际上是错误的,这个错误在 UNIX的下一个版本中已被修正。
+	*/
 	if(p > curpri)
 		runrun++;
 	pp->p_pri = p;
@@ -267,18 +289,35 @@ swtch()
 	register i, n;
 	register struct proc *rp;
 
+	/*
+	* ​p​是遍历 ​proc[]​时所使用的​static​变量。
+	* 它保存着上次执行​swtch()​时选择的进程（执行进程）所指向的​proc[]​的元素。
+	* 初次执行​swtch()​时​p​的值为​NULL​，指向proc[]​的起始位置。
+	*/
 	if(p == NULL)
 		p = &proc[0];
 	/*
 	 * Remember stack of caller
 	 */
+	/*
+	* 执行​savu()​将 r5、r6的当前值保存于待中断进程的​user.u_rsav​之中。
+	* 等到该进程再次执行时再予以恢复。 
+	*/
 	savu(u.u_rsav);
 	/*
 	 * Switch to scheduler's stack
 	 */
+	/*
+	* 执行​retu()​切换至调度器进程。
+	​* proc[0]​是供调度器使用的系统进程，在系统启动时被创建。
+	*/
 	retu(proc[0].p_addr);
 
 loop:
+	/*
+	* 将标志变量​runrun​设定为 0，该标志变量表示与执行进程相比，存在执行优先级更高的进程。
+	* 因为即将切换到拥有最高执行优先级的进程，在此将​runrun​重置为 0。
+	*/
 	runrun = 0;
 	rp = p;
 	p = NULL;
@@ -287,6 +326,7 @@ loop:
 	 * Search for highest-priority runnable process
 	 */
 	i = NPROC;
+	// 选出优先级最高的进程
 	do {
 		rp++;
 		if(rp >= &proc[NPROC])
@@ -302,6 +342,14 @@ loop:
 	 * If no process is runnable, idle.
 	 */
 	if(p == NULL) {
+		/*
+		* 如果不存在可执行的进程，将​p​设置为与此前的执行进程相对应的​proc[]​元素。
+		* 然后调用​idle()​，等待由于发生中断而出现的可执行进程。
+		* 举例来说，读取块设备的处理结束时将引发中断，使得等待该处理结束的进程被唤醒，因此出现了处于可执行状态的进程。
+		* 再比如，由时钟引发的中断导致设定在某个时刻启动的进程被唤醒的情况也是如此。
+		* 中断处理结束后，从​wait​的下一条指令开始继续执行，并从idle()​返回​swtch()​。
+		* 随后返回到标签​loop​的位置，再次尝试选择执行进程。 
+		*/
 		p = rp;
 		idle();
 		goto loop;
@@ -332,6 +380,9 @@ loop:
 	 * The value returned here has many subtle implications.
 	 * See the newproc comments.
 	 */
+	/*　返回 1。
+	* 返回位置为执行savu()的函数（该函数调用savu()并在user结构体中保存r5、r6的值）自身被调用的位置。
+	*/
 	return(1);
 }
 
@@ -363,11 +414,15 @@ newproc()
 	 * checked for the existence of a slot.
 	 */
 retry:
+	// 新建进程id
 	mpid++;
 	if(mpid < 0) {
 		mpid = 0;
 		goto retry;
 	}
+	// 遍历proc结构体数组,查看是否有可用的结构体。
+	// 若有,则用p记录首个可用的结构体元素地址。
+	// 若没有,则执行panic("no procs")
 	for(rpp = &proc[0]; rpp < &proc[NPROC]; rpp++) {
 		if(rpp->p_stat == NULL && p==NULL)
 			p = rpp;

@@ -328,20 +328,25 @@ loop:
 
 /*
  * fork system call.
+ * p1:pointer to executing process's proc structure
  */
 fork()
 {
 	register struct proc *p1, *p2;
-
 	p1 = u.u_procp;
 	for(p2 = &proc[0]; p2 < &proc[NPROC]; p2++)
 		if(p2->p_stat == NULL)
+			// find an not using proc
 			goto found;
 	u.u_error = EAGAIN;
 	goto out;
 
 found:
 	if(newproc()) {
+		/*
+		* 将用户进程的r0设定为父进程的proc.p_pid
+		* 以此作为系统调用fork对子进程的返回值。
+		*/
 		u.u_ar0[R0] = p1->p_pid;
 		u.u_cstime[0] = 0;
 		u.u_cstime[1] = 0;
@@ -351,9 +356,19 @@ found:
 		u.u_utime = 0;
 		return;
 	}
+	/* 
+	* 将父进程的R0设置为子进程的id
+	* R0 = 0
+	* u_ar0 : address of users saved R0
+	*/
 	u.u_ar0[R0] = p2->p_pid;
 
 out:
+
+	/* 
+	* 没有空余的proc结构体了，没法执行子进程
+	* 程序计数器指向下一条程序
+	*/
 	u.u_ar0[R7] =+ 2;
 }
 
