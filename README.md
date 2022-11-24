@@ -2,6 +2,10 @@
 The directory structure in this project is the same as [https://minnie.tuhs.org/cgi-bin/utree.pl?file=V6](https://minnie.tuhs.org/cgi-bin/utree.pl?file=V6).
 The purpose of this is to facilitate learning.
 
+### 视频:
+
+[Unix源码剖析：进程](https://www.bilibili.com/video/BV19M411r75V/?vd_source=3a72dc49e723efef59bcf133fb8fe42e) **Powered by [Yuyao Ge](https://github.com/GeYuYao-hub)**
+
 **工作纪要:**
 
 [Unix源码剖析：进程](https://geyuyao-hub.github.io/2022/09/07/Unix%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%EF%BC%9A%E8%BF%9B%E7%A8%8B/)
