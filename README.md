@@ -55,11 +55,11 @@ setpri(up)
 
 **相关资料以及参考:**
 
-*  The Unix Tree（Minnie’s Home Page）
-
-  可在此阅览UNIX V6的代码。
+* The Unix Tree（Minnie’s Home Page）
 
   [https://minnie.tuhs.org/cgi-bin/utree.pl](https://minnie.tuhs.org/cgi-bin/utree.pl)
+
+  可在此阅览UNIX V6的代码。
 
 * Unix V6 Manuals
 
