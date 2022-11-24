@@ -4,21 +4,21 @@ The purpose of this is to facilitate learning.
 
 已注释文件:
 
-* [usr\source](usr\source)
-  * [usr\source\s4](usr\source\s4)
-    * [usr\source\s4\fork.s](usr\source\s4\fork.s)
-* [usr\sys](usr\sys)
-  * [usr\sys\ken](usr\sys\ken)
-    * [usr\sys\ken\prf.c](usr\sys\ken\prf.c)
-    * [usr\sys\ken\sig.c](usr\sys\ken\sig.c)
-    * [usr\sys\ken\slp.c](usr\sys\ken\slp.c)
-    * [usr\sys\ken\sys1.c](usr\sys\ken\sys1.c)
+* [usr/source](usr/source)
+  * [usr/source/s4](usr/source/s4)
+    * [usr/source/s4/fork.s](usr/source/s4/fork.s)
+* [usr/sys](usr/sys)
+  * [usr/sys/ken](usr/sys/ken)
+    * [usr/sys/ken/prf.c](usr/sys/ken/prf.c)
+    * [usr/sys/ken/sig.c](usr/sys/ken/sig.c)
+    * [usr/sys/ken/slp.c](usr/sys/ken/slp.c)
+    * [usr/sys/ken/sys1.c](usr/sys/ken/sys1.c)
 
 重点工作纪要:
 
 在slp.c文件中发现了xv6的一个错误。
 
-文件路径:`usr\sys\ken\slp.c`
+文件路径:[usr/sys/ken/slp.c](usr/sys/ken/slp.c)
 
 ```c++
 setpri(up)
