@@ -149,9 +149,10 @@ sureg()
 		rp =- 8;
 	}
 	while(rp > &UISA->r[0])
-		*--rp = *--up + a;
+		*--rp = *--up + a;/*根据数据段的物理地址对​user​结构体的 APR数据进行补正，并用补正后的值更新
+							用户 PAR。​UISA​为用户 PAR0的地址。*/
 	if((up=u.u_procp->p_textp) != NULL)
-		a =- up->x_caddr;
+		a =- up->x_caddr;//如果执行进程使用代码段，则根据代码段的物理地址确定补正值，并将其赋予​a​
 	up = &u.u_uisd[16];
 	rp = &UISD->r[16];
 	if(cputype == 40) {
@@ -162,7 +163,8 @@ sureg()
 		*--rp = *--up;
 		if((*rp & WO) == 0)
 			rp[(UISA-UISD)/2] =- a;
-	}
+	}/*使用​user​结构体的 APR数据更新 PDR。在设定读取专用代码段的 PDR时，将
+		对应的 PAR寄存器的值与第 17行设定的补正值相加。​UDSA​为用户 PDR0的地址。*/
 }
 
 /*
@@ -177,7 +179,8 @@ sureg()
 estabur(nt, nd, ns, sep)
 {
 	register a, *ap, *dp;
-
+	
+	/*​正当性检查​*/
 	if(sep) {
 		if(cputype == 40)
 			goto err;
@@ -185,9 +188,12 @@ estabur(nt, nd, ns, sep)
 			goto err;
 	} else
 		if(nseg(nt)+nseg(nd)+nseg(ns) > 8)
-			goto err;
+			goto err;//nseg()​是将以64字节为单位的块数转换为页数的函数。如果总页数大于8则出错。
 	if(nt+nd+ns+USIZE > maxmem)
-		goto err;
+		goto err;/*如果需要的块数（以 64字节为单位）大于能够使用的内存容量上限则出错。
+					maxmem​表示能够使用的物理内存容量上限，在系统启动时设定。*/
+	
+	/*​分配代码段 */
 	a = 0;
 	ap = &u.u_uisa[0];
 	dp = &u.u_uisd[0];
@@ -199,13 +205,15 @@ estabur(nt, nd, ns, sep)
 	}
 	if(nt) {
 		*dp++ = ((nt-1)<<8) | RO;
-		*ap++ = a;
+		*ap++ = a;//对代码段使用的​user​结构体中的 APR进行设定。
 	}
 	if(sep)
 	while(ap < &u.u_uisa[8]) {
 		*ap++ = 0;
 		*dp++ = 0;
 	}
+	
+	​/*​分配数据区域​*/
 	a = USIZE;
 	while(nd >= 128) {
 		*dp++ = (127<<8) | RW;
@@ -220,13 +228,17 @@ estabur(nt, nd, ns, sep)
 	}
 	while(ap < &u.u_uisa[8]) {
 		*dp++ = 0;
-		*ap++ = 0;
+		*ap++ = 0;/*对数据区域使用的​user​结构体中的 APR进行设定。因为数据段起始位置的
+1					6×64字节被分配给 PPDA，因此需要将 PAR与​USIZE​（16）相加。当数据区域分配完毕时，
+					到 APR6为止的区域被清 0。*/
 	}
 	if(sep)
 	while(ap < &u.u_uisa[16]) {
 		*dp++ = 0;
 		*ap++ = 0;
 	}
+	
+	​/*​分配栈区域​*/
 	a =+ ns;
 	while(ns >= 128) {
 		a =- 128;
@@ -236,7 +248,7 @@ estabur(nt, nd, ns, sep)
 	}
 	if(ns) {
 		*--dp = ((128-ns)<<8) | RW | ED;
-		*--ap = a-128;
+		*--ap = a-128;//分配栈区域使用的页。
 	}
 	if(!sep) {
 		ap = &u.u_uisa[0];
@@ -248,8 +260,8 @@ estabur(nt, nd, ns, sep)
 		while(ap < &u.u_uisd[8])
 			*dp++ = *ap++;
 	}
-	sureg();
-	return(0);
+	sureg();　//执行​sureg()​，将​user​结构体中的 APR反映到硬件的用户 APR，以更新用户空间。
+	return(0);​//estabur()​执行成功时返回 0。
 
 err:
 	u.u_error = ENOMEM;

@@ -175,12 +175,19 @@ sched()
 	 */
 
 	goto loop;
-
+/*　不存在换出对象时的处理。设置​runin​标志变量后进入睡眠状态。被唤醒后，从
+*寻找换入对象进程处继续进行交换处理。
+*/
 sloop:
 	runin++;
 	sleep(&runin, PSWP);
 
 loop:
+	/*寻找作为换入对象的进程*/
+	/*将处理器优先级设置为 6，防止发生中断。这是为了避免代表在内存或交换空间内生
+	*存时间的​proc.p_time​因为时钟中断而发生改变。关于中断和处理器优先级，请参照第 5
+	*章的内容。
+	*/
 	spl6();
 	n = -1;
 	for(rp = &proc[0]; rp < &proc[NPROC]; rp++)
@@ -202,6 +209,9 @@ loop:
 	spl0();
 	rp = p1;
 	a = rp->p_size;
+	/*如果换入进程使用的代码段在内存中不存在，说明其代码段也需要被换入内存，
+	*因此需要增加分配给进程的内存，增加的长度为代码段的长度。
+	*/
 	if((rp=rp->p_textp) != NULL)
 		if(rp->x_ccount == 0)
 			a =+ rp->x_size;
@@ -212,7 +222,7 @@ loop:
 	 * none found,
 	 * look around for easy core
 	 */
-
+	​​/*​寻找处于SWAIT或SSTOP状态的进程作为换出对象​*/
 	spl6();
 	for(rp = &proc[0]; rp < &proc[NPROC]; rp++)
 	if((rp->p_flag&(SSYS|SLOCK|SLOAD))==SLOAD &&
@@ -225,7 +235,13 @@ loop:
 	 * look around for
 	 * oldest process in core
 	 */
-
+	//​寻找在内存中停留时间最长的进程作为换出对象​
+	/*如果没有找到满足条件的进程，则放宽进行换出处理的条件。但是，如果作为换
+	*入对象的进程距上次换出的时间小于 3秒，设置​runin​标志变量后会进入睡眠状态。
+	*寻找处于睡眠状态（​SSLEEP​，此时优先级为负值）或可执行状态（​SRUN​），并且滞留内存时
+	*间最长（​proc.p_time​具有最大值）的进程。但是，如果该进程距上次换入的时间小于 2
+	*秒，设置​runin​标志变量后会进入睡眠状态。
+	*/
 	if(n < 3)
 		goto sloop;
 	n = -1;
@@ -242,9 +258,10 @@ loop:
 
 	/*
 	 * swap user out
-	 */
+	*/
 
 found1:
+	/*​换出处理​*/
 	spl0();
 	rp->p_flag =& ~SLOAD;
 	xswap(rp, 1, 0);
@@ -255,6 +272,7 @@ found1:
 	 */
 
 found2:
+	/*​换入处理​*/
 	if((rp=p1->p_textp) != NULL) {
 		if(rp->x_ccount == 0) {
 			if(swap(rp->x_daddr, a, rp->x_size, B_READ))
@@ -521,25 +539,39 @@ expand(newsize)
 
 	p = u.u_procp;
 	n = p->p_size;
-	p->p_size = newsize;
+	p->p_size = newsize;//更新表示数据段长度的​proc.p_size​。
 	a1 = p->p_addr;
 	if(n >= newsize) {
+		//需要缩小数据段长度，可调用​mfree()​释放不再需要的内存并返回。
 		mfree(coremap, n-newsize, a1+newsize);
 		return;
 	}
 	savu(u.u_rsav);
-	a2 = malloc(coremap, newsize);
+	/*
+	* 如果需要扩展，则调用​malloc()​分配供数据段使用的新内存。
+	* 因为在第 27行将执行​retu()​，所以在此处执行​savu()​以提前保存 r5和 r6。
+	*/
 	if(a2 == NULL) {
+	a2 = malloc(coremap, newsize);
 		savu(u.u_ssav);
 		xswap(p, 1, n);
 		p->p_flag =| SSWAP;
+		/*
+		* 如果出现内存不足的情况，则将进程从内存换出至交换空间。
+		* 当进程被换入内存之后再次尝试分配内存，然后执行​swtch()​切换执行进程。
+		* 当该进程再次成为执行进程时，从退出​expand()​的地方继续运行。
+		*/
 		swtch();
 		/* no return */
 	}
 	p->p_addr = a2;
 	for(i=0; i<n; i++)
 		copyseg(a1+i, a2++);
+	/*
+	* 将数据段的内容复制到新分配的内存区域。
+	* 将​proc.p_addr​设置为新分配的内存区域的地址，并调用​mfree()​释放原有的数据段。
+	*/
 	mfree(coremap, n, a1);
 	retu(p->p_addr);
-	sureg();
+	sureg();//因为数据段的地址已经更改，所以执行​retu()​和​sureg()​以更新用户空间。
 }
