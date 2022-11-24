@@ -71,14 +71,14 @@ setpri(up)
 
   介绍了处于萌芽时期UNIX的整体概要。
 
-*  UNIX Implementation / Ken Thompson 著
+* UNIX Implementation / Ken Thompson 著
 
   从实现的角度对处于萌芽期的UNIX进行介绍。
+  
+* SETTING UP UNIX - Sixth Edition
 
-*  SETTING UP UNIX - Sixth Edition
-
-  介绍UNIX V6的环境构筑和启动方法。对希望了解用户空间（userland）系统程序的读者会有帮助。
-
+  介绍UNIX V6的环境构筑和启动方法。对希望了解用户空间（userland）系统程序的读者会有帮助。 
+  
 * The UNIX I/O System / Dennis M. Ritchie 著
 
   介绍了处于萌芽期的UNIX的I/O处理。
