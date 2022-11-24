@@ -10,26 +10,26 @@ The purpose of this is to facilitate learning.
 
 **已注释文件:**
 
-* [usr/source](usr/source)
-  * [usr/source/s4](usr/source/s4)
-    * [usr/source/s4/fork.s](usr/source/s4/fork.s)
-* [usr/sys](usr/sys)
-  * [usr/sys/ken](usr/sys/ken)
-    * [usr/sys/ken/prf.c](usr/sys/ken/prf.c)
-    * [usr/sys/ken/sig.c](usr/sys/ken/sig.c)
-    * [usr/sys/ken/slp.c](usr/sys/ken/slp.c)
-    * [usr/sys/ken/sys1.c](usr/sys/ken/sys1.c)
-    * [usr/sys/ken/main.c](usr/sys/ken/main.c)
-    * [usr/sys/ken/text.c](usr/sys/ken/text.c)
-    * [usr/sys/ken/clock.c](usr/sys/ken/clock.c)
-  * [usr/sys/conf](usr/sys/conf)
-    * [usr/sys/conf/m40.s](usr/sys/conf/m40.s)
+* [source](source)
+  * [source/s4](source/s4)
+    * [source/s4/fork.s](source/s4/fork.s)
+* [sys](sys)
+  * [sys/ken](sys/ken)
+    * [sys/ken/prf.c](sys/ken/prf.c)
+    * [sys/ken/sig.c](sys/ken/sig.c)
+    * [sys/ken/slp.c](sys/ken/slp.c)
+    * [sys/ken/sys1.c](sys/ken/sys1.c)
+    * [sys/ken/main.c](sys/ken/main.c)
+    * [sys/ken/text.c](sys/ken/text.c)
+    * [sys/ken/clock.c](sys/ken/clock.c)
+  * [sys/conf](sys/conf)
+    * [sys/conf/m40.s](sys/conf/m40.s)
 
 **工作日志:**
 
 在slp.c文件中发现了xv6的一个错误。
 
-文件路径:[usr/sys/ken/slp.c](usr/sys/ken/slp.c)
+文件路径:[sys/ken/slp.c](sys/ken/slp.c)
 
 ```c++
 setpri(up)
