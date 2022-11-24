@@ -20,6 +20,10 @@ The purpose of this is to facilitate learning.
     * [usr/sys/ken/slp.c](usr/sys/ken/slp.c)
     * [usr/sys/ken/sys1.c](usr/sys/ken/sys1.c)
     * [usr/sys/ken/main.c](usr/sys/ken/main.c)
+    * [usr/sys/ken/text.c](usr/sys/ken/text.c)
+    * [usr/sys/ken/clock.c](usr/sys/ken/clock.c)
+  * [usr/sys/conf](usr/sys/conf)
+    * [usr/sys/conf/m40.s](usr/sys/conf/m40.s)
 
 **工作日志:**
 
