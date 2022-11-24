@@ -19,9 +19,12 @@ The purpose of this is to facilitate learning.
     * [sys/ken/sig.c](sys/ken/sig.c)
     * [sys/ken/slp.c](sys/ken/slp.c)
     * [sys/ken/sys1.c](sys/ken/sys1.c)
+    * [sys/ken/sys4.c](sys/ken/sys4.c)
+    * [sys/ken/sysent.c](sys/ken/sysent.c)
     * [sys/ken/main.c](sys/ken/main.c)
     * [sys/ken/text.c](sys/ken/text.c)
     * [sys/ken/clock.c](sys/ken/clock.c)
+    * [sys/ken/trap.c](sys/ken/trap.c)
   * [sys/conf](sys/conf)
     * [sys/conf/m40.s](sys/conf/m40.s)
 

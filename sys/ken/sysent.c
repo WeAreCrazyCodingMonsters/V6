@@ -8,7 +8,7 @@
  * Each row contains the number of arguments expected
  * and a pointer to the routine.
  */
-int	sysent[]
+int	sysent[]//内核提供的系统调用，和与之对应的系统调用处理函数，都是由​sysent[]​进行管理。​sys​指令的参数对应​sysent[]​的下标。
 {
 	0, &nullsys,			/*  0 = indir */
 	0, &rexit,			/*  1 = exit */

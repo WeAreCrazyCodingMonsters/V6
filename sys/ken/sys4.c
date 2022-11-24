@@ -199,21 +199,32 @@ smdate()
 }
 */
 
-ssig()
+ssig()//ssig()​为系统调用​signal​的处理函数。执行此函数将改变​u.u_signal[]​的值。
 {
 	register a;
 
-	a = u.u_arg[0];
+	a = u.u_arg[0];//信号的种类小于等于 0，或大于等于​NSIG​(20)，或等于​SIGKIL​(9)时判断为出错。
 	if(a<=0 || a>=NSIG || a ==SIGKIL) {
 		u.u_error = EINVAL;
 		return;
 	}
-	u.u_ar0[R0] = u.u_signal[a];
-	u.u_signal[a] = u.u_arg[1];
+	u.u_ar0[R0] = u.u_signal[a];//将当前​u.u_signal[a]​的值保存于用户进程的​r0​，此数值将成为系统调用​signal​的返回值。
+	u.u_signal[a] = u.u_arg[1];//将​u.u_signal[a]​设置为由参数指定的值。
 	if(u.u_procp->p_sig == a)
 		u.u_procp->p_sig = 0;
+	/*
+	 * 如果执行中的进程在此之前已经收到了与刚刚设定的​u.u_signal[a]​相对应的信号，则将该信号清除。
+	 * 此处大概是开发者认为接收信号时的处理已经发生了变化，需要重置。
+	 */
 }
 
+/*
+ * kill()​为系统调用​kill​的处理函数。
+ * 通过​psignal()​向用户程序指定的进程ID相对应的进程发送信号，但是无法对自己发送信号。
+ * 此外，超级用户以外的用户，如果发送与接收的进程不具备相同的实效UID，也是无法发送信号的。
+ * 当指定的进程ID为0时，向与执行进程位于同一终端、除​proc[0]​和​proc[1]​之外的所有进程发送信号。
+ * 如果对象进程不存在，则会引发错误。虽然名为​kill​，但不只是发送​SIGKIL​那么简单。
+ */
 kill()
 {
 	register struct proc *p, *q;
